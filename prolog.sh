@@ -30,7 +30,7 @@ fi
 # Allocate and lock GPUs.
 SGE_GPU=""
 i=0
-device_ids=$(nvidia-smi -L | cut -f1 -d":" | cut -f2 -d" " | xargs shuf -e)
+device_ids=$(nvidia-smi -q | grep -P 'Processes' | cat -n | grep -P 'None$' | awk '{print $1 - 1}')
 for device_id in $device_ids
 do
   lockfile=/tmp/lock-gpu$device_id
