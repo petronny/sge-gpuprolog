@@ -1,31 +1,33 @@
 Gridengine GPU prolog
 =====================
 
-Scripts to manage NVIDIA GPU devices in SGE 6.2u5.
+Scripts to manage NVIDIA GPU devices in Sun Grid Engine 6.2u5 and Son of Grid Engine 8.1.9 .
 
-The last Sun Grid Engine that is packaged in Ubuntu 14.04 LTS does not contain
-the RSMAP functionality that is implemented in recent Univa Grid Engine. The
-ad-hoc scripts in this package implement resource allocation for NVIDIA devices.
-
+Sun Grid Engine and Son of Grid Engine do not contain the RSMAP functionality
+implemented in recent Univa Grid Engine.
+The ad-hoc scripts in this package implement resource allocation for NVIDIA devices.
 
 Installation
 ------------
 
-First, set up consumable complex `gpu`.
+First, set up complex `gpu_free`, `gpu_used` and `gpu_total`.
 
-    qconf -mc
+    $ qconf -mc
+    #name               shortcut     type      relop requestable consumable default  urgency
+    #----------------------------------------------------------------------------------------
+    gpu_free            gpu          INT       <=    YES         YES        0        0
+    gpu_total           gpu_total    INT       <=    YES         NO         0        0
+    gpu_used            gpu_used     INT       >=    NO          NO         0        0
 
-    #name               shortcut   type        relop   requestable consumable default  urgency
-    #----------------------------------------------------------------------------------------------
-    gpu                 gpu        INT         <=      YES         JOB        0        0
+At each execution host, setup `load_sensor`.
 
-At each exec-host, add `gpu` resource complex. For example,
+    $ qconf -mconf your_execution_host
 
-    qconf -aattr exechost complex_values gpu=1 node01
+    load_sensor                  /path/to/sge-gpuprolog/load-sensor.sh
 
 Set up `prolog` and `epilog` in the queue.
 
-    qconf -mq gpu.q
+    $ qconf -mq gpu.q
 
     prolog                sgeadmin@/path/to/sge-gpuprolog/prolog.sh
     epilog                sgeadmin@/path/to/sge-gpuprolog/epilog.sh
@@ -36,14 +38,24 @@ Alternatively, you may set up a parallel environment for GPU and set
 Usage
 -----
 
-Request `gpu` resource in the designated queue.
+Show free GPU resources in the cluster.
 
-    qsub -q gpu.q -l gpu=1 gpujob.sh
+    $ qhost -F gpu
 
-The job script can access `CUDA_VISIBLE_DEVICES` variable.
+Show free, used and total GPU resources in the cluster.
 
-    #!/bin/sh
-    echo $CUDA_VISIBLE_DEVICES
+    $ qhost -F gpu,gpu_used,gpu_total
+
+Request GPU resources in the designated queue.
+
+    $ qsub -q gpu.q -l gpu=1 gpujob.sh
+
+The job script can access the `CUDA_VISIBLE_DEVICES` variable.
+
+```sh
+#!/bin/sh
+echo $CUDA_VISIBLE_DEVICES
+```
 
 The variable contains a comma-delimited device IDs, such as `0` or `0,1,2`
 depending on the number of `gpu` resources to be requested. Use the device ID
